@@ -4,11 +4,15 @@
 
 export def local_ip [] {
 	let interfaces = (ip -4 -j a  | from json | where ifname != 'lo') 
-	(if ($interfaces | where ifname !~ 'en' | length) > 0 {
-		$interfaces | where ifname !~ 'en'
+	if (($interfaces | length) > 0) {
+		(if ($interfaces | where ifname !~ 'en' | length) > 0 {
+			$interfaces | where ifname !~ 'en'
+		} else {
+			$interfaces
+		}) | get addr_info | flatten | get local.0
 	} else {
-		$interfaces
-	}) | get addr_info | flatten | get local.0
+		"not connected"
+	}
 }
 
 let-env BROWSER = "firefox"
