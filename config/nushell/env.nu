@@ -1,6 +1,6 @@
 # Nushell Environment Config File
-#
-# version = 0.78.0
+
+let-env CDPATH = [".", $env.HOME, "/", ([$env.HOME, ".config"] | path join)]
 
 export def local_ip [] {
 	let interfaces = (ip -4 -j a  | from json | where ifname != 'lo') 
@@ -18,7 +18,34 @@ export def local_ip [] {
 let-env BROWSER = "firefox"
 let-env EDITOR = "vim"
 let-env PAGER = "less"
- 
+
+def create_left_prompt_old [] {
+    let id = (whoami | str trim)
+    let hostname = (hostname | str trim)
+
+    let id_segment = $"(ansi -e {bg: '#e4e4e4' fg: '#080808'})"
+    let id_segment = $id_segment + $"($id)@($hostname) "
+    let id_segment = $id_segment + $"(ansi reset)"
+
+    let home_dir = ("~" | path expand) 
+    let cwd = $env.PWD
+    
+    let end_dir = ($cwd | str replace -s $home_dir '~')
+    
+    let is_in_home = ($cwd == $home_dir)
+
+    let path_segment = if (is-admin) {
+        $"(ansi red_bold)"
+    } else {
+        $"(ansi -e {bg: '#1d99f3' fg: '#e4e4e4'})"
+    }
+    let path_segment = $path_segment + $"(char nf_segment) (ansi -e {fg: '#ffffff'})(char nf_folder1) ($end_dir) "
+    
+    let corner_segment = $"(ansi reset)(ansi -e {fg: '#1d99f3'})(char -u e0b0)"
+
+    $id_segment + $path_segment + $corner_segment + $"(ansi reset) "
+}
+
 def create_left_prompt [] {
     let hostname = (hostname | split row '.' | first | str trim)
     
@@ -45,6 +72,7 @@ def create_left_prompt [] {
     [$usr_str $path_segment ' ' $end_segment ' '] | str join
 }
 
+
 def create_right_prompt [] {
     let corner_segment_1 = ( [ (ansi reset) (ansi -e {fg: '#4e9a06'}) (char -u 'e0b2') ] | str join)
 	
@@ -59,15 +87,23 @@ def create_right_prompt [] {
 }
 
 # Use nushell functions to define your right and left prompt
-let-env PROMPT_COMMAND = {|| create_left_prompt }
-let-env PROMPT_COMMAND_RIGHT = {|| create_right_prompt }
+let-env PROMPT_COMMAND = { || create_left_prompt }
+let-env PROMPT_COMMAND_RIGHT = { || create_right_prompt }
+
+def create_prompt_indicator [] {
+    let prompt_indicator = $"(ansi -e {fg: '#0ce218' attr: b}) (char -u '27f6') "
+    let prompt_indicator = $prompt_indicator + $"(ansi reset)"
+    
+    $prompt_indicator
+}
+
 
 # The prompt indicators are environmental variables that represent
 # the state of the prompt
-let-env PROMPT_INDICATOR = {|| "" }
-let-env PROMPT_INDICATOR_VI_INSERT = {|| ": " }
-let-env PROMPT_INDICATOR_VI_NORMAL = {|| "> " }
-let-env PROMPT_MULTILINE_INDICATOR = {|| "::: " }
+let-env PROMPT_INDICATOR = { || "" }
+let-env PROMPT_INDICATOR_VI_INSERT = { || ": " }
+let-env PROMPT_INDICATOR_VI_NORMAL = { || "" }
+let-env PROMPT_MULTILINE_INDICATOR = { || "::: " }
 
 # Specifies how environment variables are:
 # - converted from a string to a value on Nushell startup (from_string)
@@ -100,9 +136,10 @@ let-env NU_PLUGIN_DIRS = [
 
 # To add entries to PATH (on Windows you might use Path), you can use the following pattern:
 # let-env PATH = ($env.PATH | split row (char esep) | prepend '/some/path')
-let-env PATH = ($env.PATH | split row (char esep) | prepend '/home/romain/.opam/default/bin')
-let-env PATH = ($env.PATH | split row (char esep) | prepend '/home/romain/.local/bin')
 
-let-env OCAML_TOPLEVEL_PATH = '/home/romain/.opam/default/lib/toplevel'
-let-env OPAM_SWITCH_PREFIX = '/home/romain/.opam/default'
+# Ocaml specific definitions
+let-env PATH = ($env.PATH | append '/home/romain/.opam/default/bin')
 let-env CAML_LD_LIBRARY_PATH = '/home/romain/.opam/default/lib/stublibs:/usr/lib/ocaml/stublibs:/usr/lib/ocaml'
+
+# Define default editor
+# let-env EDITOR = vim
